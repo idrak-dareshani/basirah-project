@@ -1,7 +1,0 @@
-sentence-transformers 
-faiss-cpu
-torch 
-transformers 
-numpy 
-pandas 
-scikit-learn
