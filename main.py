@@ -2,26 +2,12 @@ from fastapi import FastAPI, HTTPException, Query
 from typing import Optional
 import json
 import os
-from openai import OpenAI
+from translate import TafsirTranslator
 
 app = FastAPI()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 DATA_ROOT = "output"  # Adjust to match your output path
 
-def translate_with_openai(text: str, target_lang: str) -> str:
-    prompt = f"Translate the following Arabic Islamic tafsir text to {target_lang} in formal, clear prose:\n\n{text}"
-    try:
-        response = client.responses.create(
-            model="gpt-4o",
-            input=prompt,
-            temperature=0.4,
-        )
-        return response.output_text.strip()
-    except Exception as e:
-        print(f"[Translation error] {e}")
-        raise HTTPException(status_code=500, detail="Translation failed using OpenAI")
-    
 @app.get("/tafsir/{author}/{surah}/{ayah}", summary="Get Tafsir for a specific Ayah")
 def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("ar")):
     
@@ -38,8 +24,10 @@ def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("
         if start <= ayah <= end:
             tafsir_text = entry["tafsir_text"]
 
+            translator = TafsirTranslator()
             if lang and lang != "ar":
-                tafsir_text = translate_with_openai(tafsir_text, lang)
+                result = translator.translate_tafsir(tafsir_text, target_language=lang)
+                tafsir_text = result['translated_text']
                 
             return {
                 "author": entry["author"],
