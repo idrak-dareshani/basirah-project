@@ -1,14 +1,16 @@
+import os
+import json
 from fastapi import FastAPI, HTTPException, Query
 from typing import Optional
-import json
-import os
 from translate import TafsirTranslator
+from search_index import TafsirSearchEngine
+from utils import load_cached_translation, save_translation_to_cache
 
 app = FastAPI()
 translator = TafsirTranslator()
+search_engine = TafsirSearchEngine()
 
 DATA_ROOT = "output"
-CACHE_DIR = "cache"
 
 language_codes = {
     "en": "english",
@@ -17,18 +19,48 @@ language_codes = {
     "de": "german"
 }
 
-def load_cached_translation(author, surah, ayah, lang_code):
-    path = os.path.join(CACHE_DIR, author, f"{surah}_{ayah}_{lang_code}.json")
-    if os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f).get("translated_text")
-    return None
+@app.get("/tafsir/topic")
+def topic_search(q: str = Query(..., description="Topic query (e.g. zakat, fasting)"),
+                 author: str = Query(None, description="Optional author filter"),
+                 surah: int = Query(None, description="Optional surah filter"),
+                 top_k: int = Query(3, ge=1, le=10),
+                 lang: str = Query("ar", description="Language Code (eg. en, ur, fr)")):
 
-def save_translation_to_cache(author, surah, ayah, lang_code, translated_text):
-    os.makedirs(os.path.join(CACHE_DIR, author), exist_ok=True)
-    path = os.path.join(CACHE_DIR, author, f"{surah}_{ayah}_{lang_code}.json")
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump({"translated_text": translated_text}, f, ensure_ascii=False, indent=2)
+    results = search_engine.search(q, top_k=top_k, author=author, surah=surah)
+    final_results = []
+
+    for res in results:
+        translated_text = None
+        if lang != "ar":
+            lang_code = language_codes.get(lang)
+            if not lang_code:
+                continue
+
+            # Use ayah range key for filename
+            ayah_key = f"{res['ayah_range'][0]}_{res['ayah_range'][1]}"
+            cached = load_cached_translation(res["author"], res["surah"], ayah_key, lang)
+            if cached:
+                translated_text = cached
+            else:
+                try:
+                    result = translator.translate_tafsir(res["text"], "ar", lang_code)
+                    translated_text = result["translated_text"]
+                    save_translation_to_cache(res["author"], res["surah"], ayah_key, lang, translated_text)
+                except Exception as e:
+                    print(f"[Translation error] {e}")
+
+        final_results.append({
+            **res,
+            "language": lang,
+            "translated_text": translated_text if lang != "ar" else None
+        })
+
+    return {
+        "query": q,
+        "author_filter": author,
+        "language": lang,
+        "results": final_results
+    }
 
 @app.get("/tafsir/{author}/{surah}/{ayah}", summary="Get Tafsir for a specific Ayah")
 def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("ar")):
