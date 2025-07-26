@@ -2,5 +2,7 @@ __pycache__/
 .venv
 .env
 data
-cache
+index
 missing
+reflection
+translation
