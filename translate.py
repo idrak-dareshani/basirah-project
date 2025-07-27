@@ -353,3 +353,7 @@ class TafsirTranslator:
                         processed_sentences.append(' ')
         
         return ''.join(processed_sentences).strip()
+
+def translate_text(text: str, source_lang: str = "en", target_lang: str = "ar"):
+    translator = GoogleTranslator(source=source_lang, target=target_lang)
+    return translator.translate(text=text)

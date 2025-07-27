@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
+from translate import translate_text
 
 class TafsirSearchEngine:
     def __init__(self, data_root: str = "output", cache_dir: str = "index"):
@@ -65,7 +66,10 @@ class TafsirSearchEngine:
             return False
 
     def search(self, query: str, top_k: int = 5, author: str = None, surah: int = None):
-        query_embedding = self.model.encode([query])
+        #first change the query to Arabic then send it to the model
+        query_ar = translate_text(query)
+
+        query_embedding = self.model.encode([query_ar])
         sims = cosine_similarity(query_embedding, self.embeddings)[0]
 
         indexed_scores = list(enumerate(sims))
