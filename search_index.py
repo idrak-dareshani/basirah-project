@@ -44,7 +44,7 @@ class TafsirSearchEngine:
                         "source_urls": entry.get("source_urls", [])
                     })
         texts = [e["text"] for e in self.entries]
-        self.embeddings = self.model.encode(texts, show_progress_bar=True)
+        self.embeddings = get_embeddings(texts) #self.model.encode(texts, show_progress_bar=True)
 
     def _save_index_to_cache(self):
         os.makedirs(self.cache_dir, exist_ok=True)
