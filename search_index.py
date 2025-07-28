@@ -5,7 +5,7 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from translate import translate_text
-from utils import get_embeddings
+from utils import get_embedding
 
 class TafsirSearchEngine:
     def __init__(self, data_root: str = "output", cache_dir: str = "index"):
@@ -44,7 +44,7 @@ class TafsirSearchEngine:
                         "source_urls": entry.get("source_urls", [])
                     })
         texts = [e["text"] for e in self.entries]
-        self.embeddings = get_embeddings(texts) #self.model.encode(texts, show_progress_bar=True)
+        self.embeddings = get_embedding(texts) #self.model.encode(texts, show_progress_bar=True)
 
     def _save_index_to_cache(self):
         os.makedirs(self.cache_dir, exist_ok=True)
@@ -70,7 +70,7 @@ class TafsirSearchEngine:
         #first change the query to Arabic then send it to the model
         query_ar = translate_text(query)
 
-        query_embedding = get_embeddings(query_ar) #self.model.encode([query_ar])
+        query_embedding = get_embedding(query_ar) #self.model.encode([query_ar])
         sims = cosine_similarity(query_embedding, self.embeddings)[0]
 
         indexed_scores = list(enumerate(sims))
