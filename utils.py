@@ -51,3 +51,15 @@ def generate_reflection_gpt(tafsir_text: str, lang: str = "en") -> str:
         temperature=0.6
     )
     return response.output_text.strip()
+
+def get_embedding(text):
+    api_key = os.getenv("HF_API_KEY")
+    url = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/distiluse-base-multilingual-cased-v1"
+    headers = {"Authorization": f"Bearer {api_key}"}
+    payload = {"inputs": text}
+    
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise RuntimeError(f"HuggingFace API error: {response.status_code} - {response.text}")
