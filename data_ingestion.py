@@ -110,8 +110,8 @@ def process_author_folder(author_name, base_dir, output_dir):
 # output_folder = "output/ibn-katheer"
 
 if __name__ == "__main__":
-    data_dir = "../data"
-    output_dir = "../output"
+    data_dir = "data"
+    output_dir = "output"
     for author in os.listdir(data_dir):
         source_folder = os.path.join(data_dir, author)
         output_folder = os.path.join(output_dir, author)

@@ -1,19 +1,27 @@
 import os
 import json
+from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Query
 from typing import Optional
 from translate import TafsirTranslator
-from search_index import TafsirSearchEngine
+from embedding import get_embedding
+from reflection import generate_reflection
 from utils import (
     save_translation_to_cache,
     load_cached_translation, 
-    generate_reflection_gpt,
     save_reflection_to_cache,
     load_cached_reflection)
+from qdrant_utils import search_tafsir
 
 app = FastAPI()
+
 translator = TafsirTranslator()
-search_engine = TafsirSearchEngine()
+
+class TafsirPayload(BaseModel):
+    author: str
+    surah: str
+    ayah_range: str
+    tafsir_text: str
 
 DATA_ROOT = "output"
 
@@ -70,48 +78,24 @@ def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("
 
     raise HTTPException(status_code=404, detail="Ayah not found in the given surah's tafsir")
 
-@app.get("/tafsir/topic")
-def topic_search(q: str = Query(..., description="Topic query (e.g. zakat, fasting)"),
-                 author: str = Query(None, description="Optional author filter"),
-                 surah: int = Query(None, description="Optional surah filter"),
-                 top_k: int = Query(3, ge=1, le=10),
-                 lang: str = Query("ar", description="Language Code (eg. en, ur, fr)")):
+@app.get("/search")
+def search_topic(q: str, author: str, surah: str, top_k: int = 3, lang: str = "ar"):
+    embedding = get_embedding(q)
+    results = search_tafsir(embedding, top_k=top_k, author=author, surah=surah)
 
-    results = search_engine.search(q, top_k=top_k, author=author, surah=surah)
-    final_results = []
-
-    for res in results:
-        translated_text = None
-        if lang != "ar":
-            lang_code = language_codes.get(lang)
-            if not lang_code:
-                continue
-
-            # Use ayah range key for filename
-            ayah_key = f"{res['ayah_range'][0]}_{res['ayah_range'][1]}"
-            cached = load_cached_translation(res["author"], res["surah"], ayah_key, lang)
-            if cached:
-                translated_text = cached
-            else:
-                try:
-                    result = translator.translate_tafsir(res["text"], "ar", lang_code)
-                    translated_text = result["translated_text"]
-                    save_translation_to_cache(res["author"], res["surah"], ayah_key, lang, translated_text)
-                except Exception as e:
-                    print(f"[Translation error] {e}")
-
-        final_results.append({
-            **res,
-            "language": lang,
-            "translated_text": translated_text if lang != "ar" else None
+    response = []
+    for r in results:
+        tafsir_text = r.payload["tafsir_text"]
+        translated_text = translator.translate_tafsir(tafsir_text, "ar", lang)["translated_text"] if lang != "ar" else tafsir_text
+        response.append({
+            "score": r.score,
+            "author": r.payload.get("author"),
+            "surah": r.payload.get("surah"),
+            "ayah": r.payload.get("ayah"),
+            "text": tafsir_text,
+            "translated_text": translated_text
         })
-
-    return {
-        "query": q,
-        "author_filter": author,
-        "language": lang,
-        "results": final_results
-    }
+    return {"results": response}
 
 @app.get("/reflect")
 def reflect(author: str, surah: int, from_ayah: int, to_ayah: int,
@@ -140,7 +124,7 @@ def reflect(author: str, surah: int, from_ayah: int, to_ayah: int,
     if cached:
         reflection = cached
     else:
-        reflection = generate_reflection_gpt(combined_text, lang)
+        reflection = generate_reflection(combined_text, lang)
         save_reflection_to_cache(author, surah, from_ayah, to_ayah, lang, reflection)
 
     return {

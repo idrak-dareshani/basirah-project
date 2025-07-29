@@ -1,9 +1,5 @@
 import os
 import json
-import dotenv
-from openai import OpenAI
-
-dotenv.load_dotenv()
 
 TRANSLATION_DIR = "translation"
 REFLECTION_DIR = "reflection"
@@ -36,30 +32,5 @@ def save_reflection_to_cache(author, surah, from_ayah, to_ayah, lang, reflection
     with open(fpath, "w", encoding="utf-8") as f:
         json.dump({"reflection": reflection}, f, ensure_ascii=False, indent=2)
 
-def generate_reflection_gpt(tafsir_text: str, lang: str = "en") -> str:
-    client = OpenAI()
 
-    prompt = (
-        f"Based on the following Arabic Islamic tafsir text, write a spiritual reflection "
-        f"in {lang} that helps the reader draw practical wisdom and guidance. Focus on character, morality, or life purpose.\n\n"
-        f"{tafsir_text}"
-    )
 
-    response = client.responses.create(
-        model="gpt-4o",
-        input=prompt,
-        temperature=0.6
-    )
-    return response.output_text.strip()
-
-def get_embedding(text):
-    api_key = os.getenv("HF_API_KEY")
-    url = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/distiluse-base-multilingual-cased-v1"
-    headers = {"Authorization": f"Bearer {api_key}"}
-    payload = {"inputs": text}
-    
-    response = requests.post(url, headers=headers, json=payload)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        raise RuntimeError(f"HuggingFace API error: {response.status_code} - {response.text}")
