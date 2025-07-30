@@ -4,14 +4,15 @@ from pydantic import BaseModel
 from fastapi import FastAPI, HTTPException, Query
 from typing import Optional
 from translate import TafsirTranslator
-from embedding import get_embedding
+from translate import translate_text
+from embedding_api import get_embedding
 from reflection import generate_reflection
 from utils import (
     save_translation_to_cache,
     load_cached_translation, 
     save_reflection_to_cache,
     load_cached_reflection)
-from qdrant_utils import search_tafsir
+from qdrant_utils import search_tafsir, search_text
 
 app = FastAPI()
 
@@ -46,7 +47,11 @@ def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("
     for entry in tafsir_entries:
         start, end = entry["ayah_range"]
         if start <= ayah <= end:
-            tafsir_text = entry["tafsir_text"]
+            # Using json file
+            #tafsir_text = entry["tafsir_text"]
+            
+            # Using QDrant vector database
+            tafsir_text = search_text(author, str(surah), ayah)
 
             if lang and lang != "ar":
                 lang_code = language_codes.get(lang)
@@ -79,8 +84,9 @@ def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("
     raise HTTPException(status_code=404, detail="Ayah not found in the given surah's tafsir")
 
 @app.get("/search")
-def search_topic(q: str, author: str, surah: str, top_k: int = 3, lang: str = "ar"):
-    embedding = get_embedding(q)
+def search_topic(q: str, author: str = None, surah: str = None, top_k: int = 3, lang: str = "ar"):
+    q_arabic = translate_text(q)
+    embedding = get_embedding(q_arabic)
     results = search_tafsir(embedding, top_k=top_k, author=author, surah=surah)
 
     response = []

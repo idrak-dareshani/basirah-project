@@ -1,7 +1,7 @@
 import os
 import uuid
 from dotenv import load_dotenv
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient, models
 from qdrant_client.http.models import PointStruct, Distance, VectorParams
 
 load_dotenv()
@@ -30,16 +30,59 @@ def add_tafsir_doc(embedding, payload: dict):
     )
 
 def search_tafsir(query_embedding, top_k=3, author=None, surah=None):
-    filter_ = {}
+    filter_conditions = []
     if author:
-        filter_["author"] = author
+        filter_conditions.append({"key": "author", "match": {"value": author}})
     if surah:
-        filter_["surah"] = surah
+        filter_conditions.append({"key": "surah", "match": {"value": surah}})
 
-    results = client.search(
-        collection_name=COLLECTION_NAME,
-        query_vector=query_embedding,
-        limit=top_k,
-        query_filter={"must": [{"key": k, "match": {"value": v}} for k, v in filter_.items()]} if filter_ else None
-    )
+    search_params = {
+        "collection_name": COLLECTION_NAME,
+        "query_vector": query_embedding,
+        "limit": top_k
+    }
+    
+    # Try query_filter instead of filter
+    if filter_conditions:
+        search_params["query_filter"] = {"must": filter_conditions}
+    
+    results = client.search(**search_params)
     return results
+
+def search_text(author, surah, ayah):
+    filter_conditions = []
+
+    filter_conditions.append({"key": "author", "match": {"value": author}})
+    filter_conditions.append({"key": "surah", "match": {"value": surah}})
+    filter_conditions.append({"key": "ayah_range", "range": {"gte": ayah, "lte": ayah}})
+    search_params = {
+        "collection_name": COLLECTION_NAME,
+        "scroll_filter": {"must": filter_conditions}
+    }
+    
+    #results, next_offset = client.scroll(**search_params)
+    results, next_offset = client.scroll(collection_name=COLLECTION_NAME,
+                                         scroll_filter=models.Filter(
+                                             must=[
+                                                 models.FieldCondition(
+                                                     key="author",
+                                                     match=models.MatchValue(value=author)
+                                                 ),
+                                                 models.FieldCondition(
+                                                     key="surah",
+                                                     match=models.MatchValue(value=surah)
+                                                 ),
+                                                 models.FieldCondition(
+                                                     key="ayah_range",
+                                                     range=models.Range(gte=ayah, lte=ayah)
+                                                 )
+                                             ]
+                                         ))
+    
+    tafsir_text = None
+    for result in results:
+        if 'tafsir_text' in result.payload:
+            tafsir_text = result.payload["tafsir_text"]
+    return tafsir_text
+
+#search_text('qurtubi', '4', '5')
