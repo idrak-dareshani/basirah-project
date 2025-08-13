@@ -1,7 +1,7 @@
 import os
 import json
 from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Depends, Query
 from typing import Optional
 from translate import TafsirTranslator
 from translate import translate_text
@@ -13,6 +13,8 @@ from utils import (
     save_reflection_to_cache,
     load_cached_reflection)
 from qdrant_utils import search_tafsir, search_text
+from fastapi.security import OAuth2PasswordRequestForm
+from auth import authenticate_user, create_access_token, get_current_user
 
 app = FastAPI()
 
@@ -33,8 +35,16 @@ language_codes = {
     "de": "german"
 }
 
+@app.post("/token")
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    access_token = create_access_token(data={"sub": user["username"]})
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.get("/tafsir/{author}/{surah}/{ayah}", summary="Get Tafsir for a specific Ayah")
-def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("ar")):
+def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("ar"), user=Depends(get_current_user)):
     
     surah_file = os.path.join(DATA_ROOT, author, f"{surah}.json")
 
@@ -84,7 +94,7 @@ def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("
     raise HTTPException(status_code=404, detail="Ayah not found in the given surah's tafsir")
 
 @app.get("/search")
-def search_topic(q: str, author: str = None, surah: str = None, top_k: int = 3, lang: str = "ar"):
+def search_topic(q: str, author: str = None, surah: str = None, top_k: int = 3, lang: str = "ar", user=Depends(get_current_user)):
     q_arabic = translate_text(q)
     embedding = get_embedding(q_arabic)
     results = search_tafsir(embedding, top_k=top_k, author=author, surah=surah)
@@ -97,7 +107,7 @@ def search_topic(q: str, author: str = None, surah: str = None, top_k: int = 3, 
             "score": r.score,
             "author": r.payload.get("author"),
             "surah": r.payload.get("surah"),
-            "ayah": r.payload.get("ayah"),
+            "ayah_range": r.payload.get("ayah_range"),
             "text": tafsir_text,
             "translated_text": translated_text
         })
@@ -105,7 +115,7 @@ def search_topic(q: str, author: str = None, surah: str = None, top_k: int = 3, 
 
 @app.get("/reflect")
 def reflect(author: str, surah: int, from_ayah: int, to_ayah: int,
-            lang: str = Query("en")):
+            lang: str = Query("en"), user=Depends(get_current_user)):
     surah_path = os.path.join(DATA_ROOT, author, f"{surah}.json")
     if not os.path.exists(surah_path):
         raise HTTPException(status_code=404, detail="Tafsir file not found")

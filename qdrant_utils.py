@@ -85,4 +85,21 @@ def search_text(author, surah, ayah):
             tafsir_text = result.payload["tafsir_text"]
     return tafsir_text
 
+def get_user_by_username(username: str):
+    res = client.scroll(
+        collection_name="users",
+        scroll_filter=models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="username", 
+                    match=models.MatchValue(value=username)
+                )
+            ]
+        ),
+        limit=1
+        )
+    if res[0]:
+        return res[0][0].payload
+    return None
+
 #search_text('qurtubi', '4', '5')

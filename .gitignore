@@ -3,7 +3,8 @@ __pycache__/
 .env
 data
 index
+output
 missing
 reflection
 translation
-qdrant.py
+qdrant_users.py

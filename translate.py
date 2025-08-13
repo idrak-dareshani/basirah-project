@@ -31,11 +31,11 @@ class TafsirTranslator:
         self.delay_between_requests = delay_between_requests
         self.supported_languages = {
             'ar': 'Arabic',
-            'ur': 'Urdu',
             'en': 'English',
             'fr': 'French',
             'de': 'German',
-            'es': 'Spanish'
+            'es': 'Spanish',
+            'ur': 'Urdu'
         }
         # Dictionary to store extracted Quranic verses and their placeholders
         self.ayah_placeholders: Dict[str, str] = {}
