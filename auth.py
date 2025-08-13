@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from qdrant_utils import get_user_by_username
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "changemeplease")
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
