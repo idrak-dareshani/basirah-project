@@ -7,7 +7,6 @@ Automatically detects source language and translates using deep-translator
 
 import time
 import re
-import logging
 from typing import List, Dict, Optional, Union, Tuple
 from pathlib import Path
 import json
@@ -15,10 +14,6 @@ from datetime import datetime
 
 # Deep-translator imports
 from deep_translator import GoogleTranslator
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 class TafsirTranslator:
     def __init__(self, delay_between_requests: float = 1.0):
@@ -41,7 +36,7 @@ class TafsirTranslator:
         self.ayah_placeholders: Dict[str, str] = {}
         self.placeholder_counter: int = 0
         
-        logger.info("Multi-language Tafsir Translator initialized")
+        #logger.info("Multi-language Tafsir Translator initialized")
     
     def _reset_state(self):
         """Resets the ayah placeholder dictionary and counter for a new translation."""
@@ -64,12 +59,12 @@ class TafsirTranslator:
             placeholder = f"[{self.placeholder_counter}]"
             self.ayah_placeholders[placeholder] = original_ayah
             self.placeholder_counter += 1
-            logger.debug(f"Extracted ayah: '{original_ayah}' -> Placeholder: '{placeholder}'")
+            #logger.info(f"Extracted ayah: '{original_ayah}' -> Placeholder: '{placeholder}'")
             return placeholder
         
         processed_text = ayah_pattern.sub(replace_match, text)
 
-        logger.info(f"Ayahs extracted. Total placeholders created: {len(self.ayah_placeholders)}")
+        #logger.info(f"Ayahs extracted. Total placeholders created: {len(self.ayah_placeholders)}")
         return processed_text
 
     def _restore_ayahs(self, translated_text: str) -> str:
@@ -84,7 +79,7 @@ class TafsirTranslator:
         for placeholder_key, original_ayah_text in sorted_placeholders:
             restored_text = restored_text.replace(placeholder_key, original_ayah_text)
 
-        logger.info(f"Finished ayah restoration process.")
+        #logger.info(f"Finished ayah restoration process.")
         return restored_text
     
     def preprocess_text(self, text: str, language: str) -> str:
@@ -163,7 +158,7 @@ class TafsirTranslator:
                 
                 # Check if the current word itself is too long for a chunk (very rare, e.g., chemical names)
                 if word_len > max_length:
-                    logger.warning(f"Very long word ({word_len} chars) encountered, splitting it arbitrarily.")
+                    #logger.warning(f"Very long word ({word_len} chars) encountered, splitting it arbitrarily.")
                     # Arbitrarily split the very long word
                     # This is a fallback for extreme cases, not ideal for linguistic sense
                     for j in range(0, word_len, max_length):
@@ -210,11 +205,11 @@ class TafsirTranslator:
                 
                 if result and result.strip():
                     return result.strip()
-                else:
-                    logger.warning(f"Empty result on attempt {attempt + 1}")
+                #else:
+                #    logger.warning(f"Empty result on attempt {attempt + 1}")
                     
             except Exception as e:
-                logger.warning(f"Translation attempt {attempt + 1} failed: {str(e)}")
+                #logger.warning(f"Translation attempt {attempt + 1} failed: {str(e)}")
                 if attempt == retry_count - 1:
                     return f"[Translation failed: {str(e)}]"
                 
@@ -237,40 +232,40 @@ class TafsirTranslator:
             source_language: manual language specification (ar/ur)
             preserve_structure: Whether to preserve text structure
         """
-        logger.info("Starting tafsir translation...")
+        #logger.info("Starting tafsir translation...")
         
         # Reset placeholders for a new translation session
         self._reset_state()
 
         # Step 1: Extract Ayats and insert placeholders
         text_with_placeholders = self._extract_and_replace_ayahs(input_text)
-        logger.info(f"Extracted {len(self.ayah_placeholders)} Quranic ayats and replaced with placeholders.")
+        #logger.info(f"Extracted {len(self.ayah_placeholders)} Quranic ayats and replaced with placeholders.")
 
         source_lang_name = self.supported_languages.get(source_language, source_language)
         target_lang_name = self.supported_languages.get(target_language, target_language)
         
-        logger.info(f"Source language: {source_lang_name} ({source_language})")
-        logger.info(f"Target language: {target_lang_name} ({target_language})")
+        #logger.info(f"Source language: {source_lang_name} ({source_language})")
+        #logger.info(f"Target language: {target_lang_name} ({target_language})")
         
         # Preprocess text
         processed_text = self.preprocess_text(text_with_placeholders, source_language)
         
         # Split into chunks
         chunks = self.split_text_intelligently(processed_text)
-        logger.info(f"Text split into {len(chunks)} chunks")
+        #logger.info(f"Text split into {len(chunks)} chunks")
         
         translated_chunks = []
         failed_chunks = []
         
         for i, chunk in enumerate(chunks, 1):
-            logger.info(f"Translating chunk {i}/{len(chunks)}...")
+            #logger.info(f"Translating chunk {i}/{len(chunks)}...")
             
             translated = self.translate_chunk(chunk, source_language, target_language)
             translated_chunks.append(translated)
             
             if translated.startswith("[Translation failed"):
                 failed_chunks.append(i)
-                logger.error(f"Failed to translate chunk {i}")
+                #logger.error(f"Failed to translate chunk {i}")
             
             # Small delay between chunks
             time.sleep(self.delay_between_requests)
@@ -313,7 +308,7 @@ class TafsirTranslator:
             ]
         }
         
-        logger.info(f"Translation completed! Success rate: {success_rate:.1f}%")
+        #logger.info(f"Translation completed! Success rate: {success_rate:.1f}%")
         return result
     
     def _post_process_translation(self, text: str) -> str:

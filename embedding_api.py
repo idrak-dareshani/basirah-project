@@ -1,13 +1,13 @@
 import os
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
 
-load_dotenv()
+#load_dotenv()
 
 def get_embedding(text: str):
     client = InferenceClient(
         provider="hf-inference",
-        api_key=os.environ["HF_API_KEY"],
+        api_key=os.getenv("HF_API_KEY"),
     )
 
     result = client.feature_extraction(

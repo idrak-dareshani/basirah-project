@@ -1,10 +1,10 @@
 import os
 import uuid
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 from qdrant_client import QdrantClient, models
 from qdrant_client.http.models import PointStruct, Distance, VectorParams
 
-load_dotenv()
+#load_dotenv()
 
 QDRANT_URL = os.getenv("QDRANT_HOST")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
