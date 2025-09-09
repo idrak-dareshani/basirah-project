@@ -74,7 +74,7 @@ def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("
         if not lang_code:
             raise HTTPException(status_code=400, detail=f"Unsupported language code: {lang}")
         
-        cached = load_cached_translation(author, surah, ayah, lang)
+        cached = False #load_cached_translation(author, surah, ayah, lang)
         if cached:
             tafsir_text = cached
         else:
@@ -145,7 +145,7 @@ def reflect(author: str, surah: int, from_ayah: int, to_ayah: int,
     # combined_text = "\n\n".join(relevant_texts)
 
     # Cache lookup
-    cached = load_cached_reflection(author, surah, from_ayah, to_ayah, lang)
+    cached = False #load_cached_reflection(author, surah, from_ayah, to_ayah, lang)
     if cached:
         reflection = cached
     else:
