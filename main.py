@@ -34,11 +34,12 @@ class TafsirPayload(BaseModel):
 DATA_ROOT = "data"
 
 language_codes = {
+    "ar": "Arabic",
     "en": "English",
-    "ur": "Urdu",
     "fr": "French",
     "de": "German",
-    "ar": "Arabic"
+    "es": "Spanish",
+    "ur": "Urdu",
 }
 
 @app.post("/token")
@@ -81,7 +82,7 @@ def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("
             try:
                 result = translator.translate_tafsir(tafsir_text, target_language=lang)
                 tafsir_text = result['translated_text']
-                save_translation_to_cache(author, surah, ayah, lang, tafsir_text)
+                #save_translation_to_cache(author, surah, ayah, lang, tafsir_text)
             except Exception as e:
                 print(f"[Translation error] {e}")
                 raise HTTPException(status_code=500, detail="Translation failed")
@@ -96,8 +97,6 @@ def get_tafsir(author: str, surah: int, ayah: int, lang: Optional[str] = Query("
         # "surah_name_arabic": entry["surah_name_arabic"],
         # "source_urls": entry.get("source_urls", [])
     }
-
-    raise HTTPException(status_code=404, detail="Ayah not found in the given surah's tafsir")
 
 @app.get("/search")
 def search_topic(q: str, author: str = None, surah: str = None, top_k: int = 3, lang: str = "ar", user=Depends(get_current_user)):
@@ -152,7 +151,7 @@ def reflect(author: str, surah: int, from_ayah: int, to_ayah: int,
         #reflection = generate_reflection(combined_text, lang)
         language = language_codes.get(lang, "english")
         reflection = generate_reflection_simple(author, surah, from_ayah, to_ayah, language)
-        save_reflection_to_cache(author, surah, from_ayah, to_ayah, lang, reflection)
+        #save_reflection_to_cache(author, surah, from_ayah, to_ayah, lang, reflection)
 
     return {
         "author": author,
