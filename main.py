@@ -34,10 +34,11 @@ class TafsirPayload(BaseModel):
 DATA_ROOT = "data"
 
 language_codes = {
-    "en": "english",
-    "ur": "urdu",
-    "fr": "french",
-    "de": "german"
+    "en": "English",
+    "ur": "Urdu",
+    "fr": "French",
+    "de": "German",
+    "ar": "Arabic"
 }
 
 @app.post("/token")

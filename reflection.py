@@ -13,7 +13,7 @@ def generate_reflection(tafsir_text: str, lang: str = "en") -> str:
     )
 
     response = client.responses.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         input=prompt,
         temperature=0.6
     )
@@ -23,11 +23,11 @@ def generate_reflection_simple(author: str, surah_number: int, from_ayah: int, t
     client = OpenAI()
 
     prompt = (
-        f"Write a spiritual reflection in {language} for Surah {surah_number} Ayahs {from_ayah} to {to_ayah} from the Islamic tafsir of {author}"
+        f"Write a spiritual reflection in {language} for Surah {surah_number} Ayahs {from_ayah} to {to_ayah} from the classical Islamic tafsir of {author}"
     )
 
     response = client.responses.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         input=prompt,
         temperature=0.6
     )
